@@ -1,31 +1,45 @@
-function App() {
-  return (
-    <div style={{
-      display: "flex",
-      justifyContent: "center",
-      alignItems: "center",
-      height: "100vh",
-      backgroundColor: "#0f172a",
-      color: "white",
-      flexDirection: "column",
-      fontFamily: "Arial"
-    }}>
-      <h1>CasaClick</h1>
-      <p>Tu hogar en un click</p>
-      <p>Lo mejor es tener un hogar para compartir</p>
+import { useState } from "react";
+import app from "./firebase";
+import { getAuth, signInWithPhoneNumber, RecaptchaVerifier } from "firebase/auth";
 
-      <button style={{
-        marginTop: "20px",
-        padding: "12px 24px",
-        backgroundColor: "#22c55e",
-        border: "none",
-        borderRadius: "10px",
-        color: "white",
-        fontSize: "16px",
-        cursor: "pointer"
-      }}>
-        Comenzar
+const auth = getAuth(app);
+
+function App() {
+  const [phone, setPhone] = useState("");
+
+  const sendCode = () => {
+    const recaptcha = new RecaptchaVerifier(auth, "recaptcha", {});
+    
+    signInWithPhoneNumber(auth, phone, recaptcha)
+      .then(() => {
+        alert("Código enviado");
+      })
+      .catch((error) => {
+        console.log(error);
+        alert("Error al enviar código");
+      });
+  };
+
+  return (
+    <div style={{ padding: 20 }}>
+      <h1>CasaClick</h1>
+      <p>Ingresa tu número para comenzar</p>
+
+      <input
+        type="text"
+        placeholder="+521XXXXXXXXXX"
+        value={phone}
+        onChange={(e) => setPhone(e.target.value)}
+        style={{ padding: 10, marginBottom: 10 }}
+      />
+
+      <br />
+
+      <button onClick={sendCode}>
+        Enviar código
       </button>
+
+      <div id="recaptcha"></div>
     </div>
   );
 }
