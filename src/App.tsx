@@ -7,12 +7,20 @@ const auth = getAuth(app);
 function App() {
   const [phone, setPhone] = useState("");
 
-  const sendCode = () => {
-    const recaptcha = new RecaptchaVerifier(auth, "recaptcha", {
-      size: "invisible"
-    });
+  const setupRecaptcha = () => {
+    if (!(window as any).recaptchaVerifier) {
+      (window as any).recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha", {
+        size: "invisible"
+      });
+    }
+  };
 
-    signInWithPhoneNumber(auth, phone, recaptcha)
+  const sendCode = () => {
+    setupRecaptcha();
+
+    const appVerifier = (window as any).recaptchaVerifier;
+
+    signInWithPhoneNumber(auth, phone, appVerifier)
       .then(() => {
         alert("Código enviado");
       })
