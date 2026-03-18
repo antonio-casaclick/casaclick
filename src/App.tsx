@@ -15,15 +15,20 @@ function App() {
     }
   };
 
-  const sendCode = () => {
+ const sendCode = () => {
   setupRecaptcha();
 
-  let formattedPhone = phone;
+  // limpiar todo (solo números)
+  let cleanPhone = phone.replace(/\D/g, "");
 
-  // Si el usuario escribe solo 10 dígitos
-  if (phone.length === 10) {
-    formattedPhone = "+521" + phone;
+  // validar que sean 10 dígitos
+  if (cleanPhone.length !== 10) {
+    alert("Ingresa un número válido de 10 dígitos");
+    return;
   }
+
+  // formato México
+  const formattedPhone = "+521" + cleanPhone;
 
   const appVerifier = (window as any).recaptchaVerifier;
 
@@ -36,7 +41,6 @@ function App() {
       alert(error.message);
     });
 };
-
   return (
     <div style={{ padding: 20 }}>
       <h1>CasaClick</h1>
