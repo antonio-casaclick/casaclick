@@ -8,15 +8,17 @@ function App() {
   const [phone, setPhone] = useState("");
 
   const sendCode = () => {
-    const recaptcha = new RecaptchaVerifier(auth, "recaptcha", {});
-    
+    const recaptcha = new RecaptchaVerifier(auth, "recaptcha", {
+      size: "invisible"
+    });
+
     signInWithPhoneNumber(auth, phone, recaptcha)
       .then(() => {
         alert("Código enviado");
       })
       .catch((error) => {
         console.log(error);
-        alert("Error al enviar código");
+        alert(error.message);
       });
   };
 
@@ -30,10 +32,9 @@ function App() {
         placeholder="+521XXXXXXXXXX"
         value={phone}
         onChange={(e) => setPhone(e.target.value)}
-        style={{ padding: 10, marginBottom: 10 }}
       />
 
-      <br />
+      <br /><br />
 
       <button onClick={sendCode}>
         Enviar código
