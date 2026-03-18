@@ -1,7 +1,7 @@
 import { initializeApp } from "firebase/app";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAFhxDwJAwCrUy0jU0Z2xUVQFxNMlTNK8",
+  apiKey: "AIzaSyAFhxDwJAWrCuY0jYUO2xuVQWFxNMITNK8",
   authDomain: "casaclick-66471.firebaseapp.com",
   projectId: "casaclick-66471",
   storageBucket: "casaclick-66471.firebasestorage.app",
