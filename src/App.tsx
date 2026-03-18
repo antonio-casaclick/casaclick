@@ -1,8 +1,10 @@
 import { useState } from "react";
 import app from "./firebase";
 import { getAuth, signInWithPhoneNumber, RecaptchaVerifier } from "firebase/auth";
+import { getFirestore, doc, setDoc } from "firebase/firestore";
 
 const auth = getAuth(app);
+const db = getFirestore(app);
 
 function App() {
   const [phone, setPhone] = useState("");
@@ -46,9 +48,17 @@ function App() {
     if (!confirmation) return;
 
     confirmation.confirm(code)
-      .then(() => {
-        setUserLogged(true);
-      })
+      confirmation.confirm(code)
+  .then(async (result) => {
+    const user = result.user;
+
+    await setDoc(doc(db, "usuarios", user.uid), {
+      telefono: user.phoneNumber,
+      fecha: new Date().toISOString()
+    });
+
+    setUserLogged(true);
+  })
       .catch(() => {
         alert("Código incorrecto");
       });
