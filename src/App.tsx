@@ -28,7 +28,7 @@ function App() {
   }
 
   // formato México
-  const formattedPhone = `+521${cleanPhone.slice(-10)}`;
+  const formattedPhone = `+52${cleanPhone.slice(-10)}`;
 
   const appVerifier = (window as any).recaptchaVerifier;
 
