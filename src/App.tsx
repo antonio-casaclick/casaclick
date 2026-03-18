@@ -6,6 +6,8 @@ const auth = getAuth(app);
 
 function App() {
   const [phone, setPhone] = useState("");
+  const [code, setCode] = useState("");
+  const [confirmation, setConfirmation] = useState<any>(null);
 
   const setupRecaptcha = () => {
     if (!(window as any).recaptchaVerifier) {
@@ -15,49 +17,82 @@ function App() {
     }
   };
 
- const sendCode = () => {
-  setupRecaptcha();
+  const sendCode = () => {
+    setupRecaptcha();
 
-  // limpiar todo (solo números)
-  let cleanPhone = phone.replace(/\D/g, "");
+    let cleanPhone = phone.replace(/\D/g, "");
 
-  // validar que sean 10 dígitos
-  if (cleanPhone.length !== 10) {
-    alert("Ingresa un número válido de 10 dígitos");
-    return;
-  }
+    if (cleanPhone.length < 10) {
+      alert("Ingresa un número válido de 10 dígitos");
+      return;
+    }
 
-  // formato México
-  const formattedPhone = `+52${cleanPhone.slice(-10)}`;
+    const formattedPhone = `+52${cleanPhone.slice(-10)}`;
 
-  const appVerifier = (window as any).recaptchaVerifier;
+    const appVerifier = (window as any).recaptchaVerifier;
 
-  signInWithPhoneNumber(auth, formattedPhone, appVerifier)
-    .then(() => {
-      alert("Código enviado");
-    })
-    .catch((error) => {
-      console.log(error);
-      alert(error.message);
-    });
-};
+    signInWithPhoneNumber(auth, formattedPhone, appVerifier)
+      .then((result) => {
+        setConfirmation(result);
+        alert("Código enviado");
+      })
+      .catch((error) => {
+        console.log(error);
+        alert(error.message);
+      });
+  };
+
+  const verifyCode = () => {
+    if (!confirmation) return;
+
+    confirmation.confirm(code)
+      .then(() => {
+        alert("Bienvenido a CasaClick");
+      })
+      .catch(() => {
+        alert("Código incorrecto");
+      });
+  };
+
   return (
     <div style={{ padding: 20 }}>
       <h1>CasaClick</h1>
-      <p>Ingresa tu número para comenzar</p>
 
-      <input
-  type="tel"
-  placeholder="Ingresa tu número (10 dígitos)"
-  value={phone}
-  onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
-/>
+      {!confirmation ? (
+        <>
+          <p>Ingresa tu número</p>
 
-      <br /><br />
+          <input
+            type="tel"
+            placeholder="10 dígitos"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
+          />
 
-      <button onClick={sendCode}>
-        Enviar código
-      </button>
+          <br /><br />
+
+          <button onClick={sendCode}>
+            Enviar código
+          </button>
+        </>
+      ) : (
+        <>
+          <p>Ingresa el código</p>
+
+          <input
+            type="text"
+            placeholder="Código"
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
+          />
+
+          <br /><br />
+
+          <button onClick={verifyCode}>
+            Verificar código
+          </button>
+        </>
+      )}
 
       <div id="recaptcha"></div>
     </div>
