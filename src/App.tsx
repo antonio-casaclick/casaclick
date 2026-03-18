@@ -35,7 +35,6 @@ function App() {
     signInWithPhoneNumber(auth, formattedPhone, appVerifier)
       .then((result) => {
         setConfirmation(result);
-        alert("Código enviado");
       })
       .catch((error) => {
         console.log(error);
@@ -47,61 +46,62 @@ function App() {
     if (!confirmation) return;
 
     confirmation.confirm(code)
-  .then(() => {
-    setUserLogged(true);
-  })
+      .then(() => {
+        setUserLogged(true);
+      })
       .catch(() => {
         alert("Código incorrecto");
       });
   };
 
- return (
-  <div style={{ padding: 20 }}>
-    <h1>CasaClick</h1>
+  return (
+    <div style={{ padding: 20 }}>
+      <h1>CasaClick</h1>
 
-    {userLogged ? (
-      <>
-        <h2>Bienvenido a CasaClick</h2>
-        <p>Ya puedes comenzar tu búsqueda de hogar</p>
-      </>
-    ) : !confirmation ? (
-      <>
-        <p>Ingresa tu número</p>
+      {userLogged ? (
+        <>
+          <h2>Bienvenido a CasaClick</h2>
+          <p>Ya puedes comenzar tu búsqueda de hogar</p>
+        </>
+      ) : !confirmation ? (
+        <>
+          <p>Ingresa tu número</p>
 
-        <input
-          type="tel"
-          placeholder="10 dígitos"
-          value={phone}
-          onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
-        />
+          <input
+            type="tel"
+            placeholder="10 dígitos"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
+          />
 
-        <br /><br />
+          <br /><br />
 
-        <button onClick={sendCode}>
-          Enviar código
-        </button>
-      </>
-    ) : (
-      <>
-        <p>Ingresa el código</p>
+          <button onClick={sendCode}>
+            Enviar código
+          </button>
+        </>
+      ) : (
+        <>
+          <p>Ingresa el código</p>
 
-        <input
-          type="text"
-          placeholder="Código"
-          value={code}
-          onChange={(e) => setCode(e.target.value)}
-        />
+          <input
+            type="text"
+            placeholder="Código"
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
+          />
 
-        <br /><br />
+          <br /><br />
 
-        <button onClick={verifyCode}>
-          Verificar código
-        </button>
-      </>
-    )}
+          <button onClick={verifyCode}>
+            Verificar código
+          </button>
+        </>
+      )}
 
-    <div id="recaptcha"></div>
-  </div>
-);
+      <div id="recaptcha"></div>
+    </div>
+  );
+}
 
 export default App;
