@@ -16,19 +16,26 @@ function App() {
   };
 
   const sendCode = () => {
-    setupRecaptcha();
+  setupRecaptcha();
 
-    const appVerifier = (window as any).recaptchaVerifier;
+  let formattedPhone = phone;
 
-    signInWithPhoneNumber(auth, phone, appVerifier)
-      .then(() => {
-        alert("Código enviado");
-      })
-      .catch((error) => {
-        console.log(error);
-        alert(error.message);
-      });
-  };
+  // Si el usuario escribe solo 10 dígitos
+  if (phone.length === 10) {
+    formattedPhone = "+521" + phone;
+  }
+
+  const appVerifier = (window as any).recaptchaVerifier;
+
+  signInWithPhoneNumber(auth, formattedPhone, appVerifier)
+    .then(() => {
+      alert("Código enviado");
+    })
+    .catch((error) => {
+      console.log(error);
+      alert(error.message);
+    });
+};
 
   return (
     <div style={{ padding: 20 }}>
@@ -36,11 +43,11 @@ function App() {
       <p>Ingresa tu número para comenzar</p>
 
       <input
-        type="text"
-        placeholder="+521XXXXXXXXXX"
-        value={phone}
-        onChange={(e) => setPhone(e.target.value)}
-      />
+  type="tel"
+  placeholder="Ingresa tu número (10 dígitos)"
+  value={phone}
+  onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
+/>
 
       <br /><br />
 
