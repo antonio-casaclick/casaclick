@@ -55,7 +55,7 @@ function App() {
     if (!confirmation) return;
 
     confirmation.confirm(code)
-      .then(async (result) => {
+      .then(async (result: any) => {
         const user = result.user;
 
         await setDoc(doc(db, "usuarios", user.uid), {
