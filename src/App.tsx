@@ -72,14 +72,18 @@ function App() {
   };
 
   const obtenerPropiedades = async () => {
-    const querySnapshot = await getDocs(collection(db, "propiedades"));
-    const lista: any[] = [];
+    try {
+      const querySnapshot = await getDocs(collection(db, "propiedades"));
+      const lista: any[] = [];
 
-    querySnapshot.forEach((doc) => {
-      lista.push({ id: doc.id, ...doc.data() });
-    });
+      querySnapshot.forEach((doc) => {
+        lista.push({ id: doc.id, ...doc.data() });
+      });
 
-    setPropiedades(lista);
+      setPropiedades(lista);
+    } catch (error) {
+      console.log("ERROR FIREBASE:", error);
+    }
   };
 
   return (
@@ -126,6 +130,17 @@ function App() {
                 <h3>{casa.nombre}</h3>
                 <p>Precio: ${casa.precio}</p>
                 <p>Recámaras: {casa.recamaras}</p>
+
+                <button
+                  onClick={() => {
+                    const mensaje = `Hola, me interesa ${casa.nombre} con precio de $${casa.precio}`;
+                    window.open(
+                      `https://wa.me/525573304018?text=${encodeURIComponent(mensaje)}`
+                    );
+                  }}
+                >
+                  Me interesa
+                </button>
               </div>
             ))
           )}
