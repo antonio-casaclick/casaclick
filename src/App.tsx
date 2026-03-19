@@ -1,115 +1,134 @@
 import { useState } from "react";
-import app from "./firebase";
-import { getAuth, signInWithPhoneNumber, RecaptchaVerifier } from "firebase/auth";
-import { getFirestore, doc, setDoc } from "firebase/firestore";
+import "./App.css";
 
-const auth = getAuth(app);
-const db = getFirestore(app);
+import { auth, db } from "./firebase";
+import { RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
+import { doc, setDoc, collection, getDocs } from "firebase/firestore";
 
 function App() {
   const [phone, setPhone] = useState("");
   const [code, setCode] = useState("");
   const [confirmation, setConfirmation] = useState<any>(null);
   const [userLogged, setUserLogged] = useState(false);
+  const [propiedades, setPropiedades] = useState<any[]>([]);
 
   const setupRecaptcha = () => {
     if (!(window as any).recaptchaVerifier) {
-      (window as any).recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha", {
-        size: "invisible"
-      });
+      (window as any).recaptchaVerifier = new RecaptchaVerifier(
+        auth,
+        "recaptcha-container",
+        {
+          size: "invisible",
+        }
+      );
     }
   };
 
-  const sendCode = () => {
+  const sendCode = async () => {
     setupRecaptcha();
 
     let cleanPhone = phone.replace(/\D/g, "");
 
-    if (cleanPhone.length < 10) {
+    if (cleanPhone.length !== 10) {
       alert("Ingresa un número válido de 10 dígitos");
       return;
     }
 
-    const formattedPhone = `+52${cleanPhone.slice(-10)}`;
+    const formattedPhone = "+52" + cleanPhone;
 
     const appVerifier = (window as any).recaptchaVerifier;
 
-    signInWithPhoneNumber(auth, formattedPhone, appVerifier)
-      .then((result) => {
-        setConfirmation(result);
-      })
-      .catch((error) => {
-        console.log(error);
-        alert(error.message);
-      });
+    try {
+      const confirmationResult = await signInWithPhoneNumber(
+        auth,
+        formattedPhone,
+        appVerifier
+      );
+      setConfirmation(confirmationResult);
+      alert("Código enviado (usa 123456)");
+    } catch (error: any) {
+      alert(error.message);
+    }
   };
 
   const verifyCode = () => {
     if (!confirmation) return;
 
     confirmation.confirm(code)
-      confirmation.confirm(code)
-  .then(async (result) => {
-    const user = result.user;
+      .then(async (result) => {
+        const user = result.user;
 
-    await setDoc(doc(db, "usuarios", user.uid), {
-      telefono: user.phoneNumber,
-      fecha: new Date().toISOString()
-    });
+        await setDoc(doc(db, "usuarios", user.uid), {
+          telefono: user.phoneNumber,
+          fecha: new Date().toISOString(),
+        });
 
-    setUserLogged(true);
-  })
+        setUserLogged(true);
+        obtenerPropiedades();
+      })
       .catch(() => {
         alert("Código incorrecto");
       });
+  };
+
+  const obtenerPropiedades = async () => {
+    const querySnapshot = await getDocs(collection(db, "propiedades"));
+    const lista: any[] = [];
+
+    querySnapshot.forEach((doc) => {
+      lista.push({ id: doc.id, ...doc.data() });
+    });
+
+    setPropiedades(lista);
   };
 
   return (
     <div style={{ padding: 20 }}>
       <h1>CasaClick</h1>
 
-      {userLogged ? (
+      {!userLogged ? (
         <>
-          <h2>Bienvenido a CasaClick</h2>
-          <p>Ya puedes comenzar tu búsqueda de hogar</p>
-        </>
-      ) : !confirmation ? (
-        <>
-          <p>Ingresa tu número</p>
-
-          <input
-            type="tel"
-            placeholder="10 dígitos"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
-          />
-
-          <br /><br />
-
-          <button onClick={sendCode}>
-            Enviar código
-          </button>
+          {!confirmation ? (
+            <>
+              <h3>Ingresa tu número</h3>
+              <input
+                placeholder="10 dígitos"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+              />
+              <br /><br />
+              <button onClick={sendCode}>Enviar código</button>
+            </>
+          ) : (
+            <>
+              <h3>Ingresa código</h3>
+              <input
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+              />
+              <br /><br />
+              <button onClick={verifyCode}>Verificar</button>
+            </>
+          )}
         </>
       ) : (
         <>
-          <p>Ingresa el código</p>
+          <h2>Casas disponibles</h2>
 
-          <input
-            type="text"
-            placeholder="Código"
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-          />
-
-          <br /><br />
-
-          <button onClick={verifyCode}>
-            Verificar código
-          </button>
+          {propiedades.map((casa) => (
+            <div
+              key={casa.id}
+              style={{ border: "1px solid #ccc", margin: 10, padding: 10 }}
+            >
+              <h3>{casa.nombre}</h3>
+              <p>Precio: ${casa.precio}</p>
+              <p>Recámaras: {casa.recamaras}</p>
+            </div>
+          ))}
         </>
       )}
 
-      <div id="recaptcha"></div>
+      <div id="recaptcha-container"></div>
     </div>
   );
 }
