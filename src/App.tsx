@@ -10,12 +10,14 @@ function App() {
   const [code, setCode] = useState("");
   const [confirmation, setConfirmation] = useState<any>(null);
   const [userLogged, setUserLogged] = useState(false);
-  const [propiedades, setPropiedades] = useState<any[]>([]);
-  const [presupuesto, setPresupuesto] = useState("");
+
   const [tipoCredito, setTipoCredito] = useState("");
-  const [subTipo, setSubTipo] = useState("");
-  const [montoCredito, setMontoCredito] = useState("");
-  const [mostrarFiltro, setMostrarFiltro] = useState(true);
+  const [sabeMonto, setSabeMonto] = useState("");
+  const [monto, setMonto] = useState("");
+
+  const [propiedades, setPropiedades] = useState<any[]>([]);
+  const [mostrarFlujo, setMostrarFlujo] = useState(true);
+
   const [userId, setUserId] = useState("");
 
   const setupRecaptcha = () => {
@@ -30,6 +32,7 @@ function App() {
 
   const sendCode = async () => {
     setupRecaptcha();
+
     let cleanPhone = phone.replace(/\D/g, "");
 
     if (cleanPhone.length !== 10) {
@@ -59,6 +62,11 @@ function App() {
 
       setUserId(user.uid);
       setUserLogged(true);
+
+      setMostrarFlujo(true);
+      setTipoCredito("");
+      setSabeMonto("");
+      setMonto("");
     });
   };
 
@@ -73,32 +81,54 @@ function App() {
     setPropiedades(lista);
   };
 
-  const aplicarFiltro = async () => {
+  const continuar = async () => {
+    if (!tipoCredito || !sabeMonto) {
+      alert("Completa los datos");
+      return;
+    }
+
+    if (sabeMonto === "no") {
+      const mensaje = `Hola, necesito ayuda para revisar mi crédito (${tipoCredito})`;
+      window.open(
+        `https://wa.me/525573304018?text=${encodeURIComponent(mensaje)}`
+      );
+      return;
+    }
+
+    if (!monto) {
+      alert("Ingresa tu monto");
+      return;
+    }
+
     await updateDoc(doc(db, "usuarios", userId), {
-      presupuesto: Number(presupuesto),
       tipoCredito,
-      subTipo,
-      montoCredito,
+      monto: Number(monto),
     });
 
     await obtenerPropiedades();
-    setMostrarFiltro(false);
+    setMostrarFlujo(false);
   };
 
   const propiedadesFiltradas = propiedades.filter(
-    (casa) => casa.precio <= Number(presupuesto || montoCredito)
+    (casa) => casa.precio <= Number(monto)
   );
-
-  const generarMensaje = (casa: any) => {
-    return `Hola, me interesa ${casa.nombre}.
-Tipo de crédito: ${tipoCredito}
-Detalle: ${subTipo}
-Monto: $${montoCredito || presupuesto}`;
-  };
 
   return (
     <div style={{ padding: 20 }}>
       <h1>CasaClick</h1>
+
+      {userLogged && (
+        <button
+          onClick={() => {
+            setMostrarFlujo(true);
+            setTipoCredito("");
+            setSabeMonto("");
+            setMonto("");
+          }}
+        >
+          Reiniciar
+        </button>
+      )}
 
       {!userLogged ? (
         <>
@@ -122,91 +152,64 @@ Monto: $${montoCredito || presupuesto}`;
             </>
           )}
         </>
-      ) : mostrarFiltro ? (
+      ) : mostrarFlujo ? (
         <>
-          <h2>Cuéntanos sobre tu crédito</h2>
+          <h2>¿Qué tipo de crédito tienes?</h2>
 
-          <select onChange={(e) => setTipoCredito(e.target.value)}>
-            <option value="">Selecciona crédito</option>
+          <select
+            value={tipoCredito}
+            onChange={(e) => setTipoCredito(e.target.value)}
+          >
+            <option value="">Selecciona</option>
             <option value="Infonavit">Infonavit</option>
             <option value="Fovissste">Fovissste</option>
             <option value="Bancario">Bancario</option>
           </select>
 
-          <br /><br />
-
-          {/* INFONAVIT */}
-          {tipoCredito === "Infonavit" && (
+          {tipoCredito && (
             <>
-              <select onChange={(e) => setSubTipo(e.target.value)}>
-                <option value="">Selecciona opción</option>
-                <option value="Tradicional">Tradicional</option>
-                <option value="Unamos crédito">Unamos crédito</option>
-                <option value="No sé mi crédito">Necesito ayuda</option>
-              </select>
-
               <br /><br />
+              <h3>¿Sabes cuánto te prestan?</h3>
 
-              {subTipo === "Tradicional" && (
-                <input
-                  placeholder="Monto de crédito"
-                  onChange={(e) => setMontoCredito(e.target.value)}
-                />
-              )}
-
-              {subTipo === "Unamos crédito" && (
-                <>
-                  <input
-                    placeholder="Tu monto"
-                    onChange={(e) => setMontoCredito(e.target.value)}
-                  />
-                  <input placeholder="¿Con quién lo unes?" />
-                </>
-              )}
+              <button onClick={() => setSabeMonto("si")}>Sí</button>
+              <button onClick={() => setSabeMonto("no")}>No</button>
             </>
           )}
 
-          {/* FOVISSSTE */}
-          {tipoCredito === "Fovissste" && (
+          {sabeMonto === "si" && (
             <>
+              <br /><br />
               <input
-                placeholder="Monto de crédito"
-                onChange={(e) => setMontoCredito(e.target.value)}
+                placeholder="Ej: 1200000"
+                value={monto}
+                onChange={(e) => setMonto(e.target.value)}
               />
-              <p>Si no sabes tu monto escribe: Necesito ayuda</p>
-            </>
-          )}
-
-          {/* BANCARIO */}
-          {tipoCredito === "Bancario" && (
-            <>
-              <input
-                placeholder="Monto autorizado"
-                onChange={(e) => setMontoCredito(e.target.value)}
-              />
-              <p>Si no tienes, escribe: Necesito precalificación</p>
             </>
           )}
 
           <br /><br />
 
-          <button onClick={aplicarFiltro}>Ver opciones</button>
+          {tipoCredito && sabeMonto && (
+            <button onClick={continuar}>Continuar</button>
+          )}
         </>
       ) : (
         <>
           <h2>Opciones para ti</h2>
 
           {propiedadesFiltradas.map((casa) => (
-            <div key={casa.id} style={{ border: "1px solid #ccc", margin: 10, padding: 10 }}>
+            <div
+              key={casa.id}
+              style={{ border: "1px solid #ccc", margin: 10, padding: 10 }}
+            >
               <h3>{casa.nombre}</h3>
               <p>${casa.precio}</p>
 
               <button
                 onClick={() => {
+                  const mensaje = `Hola, me interesa ${casa.nombre}. Tengo ${tipoCredito} con un monto de $${monto}`;
                   window.open(
-                    `https://wa.me/525573304018?text=${encodeURIComponent(
-                      generarMensaje(casa)
-                    )}`
+                    `https://wa.me/525573304018?text=${encodeURIComponent(mensaje)}`
                   );
                 }}
               >
