@@ -12,6 +12,9 @@ function App() {
   const [userLogged, setUserLogged] = useState(false);
   const [propiedades, setPropiedades] = useState<any[]>([]);
   const [presupuesto, setPresupuesto] = useState("");
+  const [tipoCredito, setTipoCredito] = useState("");
+  const [subTipo, setSubTipo] = useState("");
+  const [montoCredito, setMontoCredito] = useState("");
   const [mostrarFiltro, setMostrarFiltro] = useState(true);
   const [userId, setUserId] = useState("");
 
@@ -27,48 +30,36 @@ function App() {
 
   const sendCode = async () => {
     setupRecaptcha();
-
     let cleanPhone = phone.replace(/\D/g, "");
 
     if (cleanPhone.length !== 10) {
-      alert("Ingresa un número válido de 10 dígitos");
+      alert("Número inválido");
       return;
     }
 
-    const formattedPhone = "+52" + cleanPhone;
-    const appVerifier = (window as any).recaptchaVerifier;
+    const confirmationResult = await signInWithPhoneNumber(
+      auth,
+      "+52" + cleanPhone,
+      (window as any).recaptchaVerifier
+    );
 
-    try {
-      const confirmationResult = await signInWithPhoneNumber(
-        auth,
-        formattedPhone,
-        appVerifier
-      );
-      setConfirmation(confirmationResult);
-      alert("Código enviado (usa 123456)");
-    } catch (error: any) {
-      alert(error.message);
-    }
+    setConfirmation(confirmationResult);
   };
 
   const verifyCode = () => {
     if (!confirmation) return;
 
-    confirmation.confirm(code)
-      .then(async (result: any) => {
-        const user = result.user;
+    confirmation.confirm(code).then(async (result: any) => {
+      const user = result.user;
 
-        await setDoc(doc(db, "usuarios", user.uid), {
-          telefono: user.phoneNumber,
-          fecha: new Date().toISOString(),
-        });
-
-        setUserId(user.uid);
-        setUserLogged(true);
-      })
-      .catch(() => {
-        alert("Código incorrecto");
+      await setDoc(doc(db, "usuarios", user.uid), {
+        telefono: user.phoneNumber,
+        fecha: new Date().toISOString(),
       });
+
+      setUserId(user.uid);
+      setUserLogged(true);
+    });
   };
 
   const obtenerPropiedades = async () => {
@@ -83,13 +74,11 @@ function App() {
   };
 
   const aplicarFiltro = async () => {
-    if (!presupuesto) {
-      alert("Ingresa tu presupuesto");
-      return;
-    }
-
     await updateDoc(doc(db, "usuarios", userId), {
       presupuesto: Number(presupuesto),
+      tipoCredito,
+      subTipo,
+      montoCredito,
     });
 
     await obtenerPropiedades();
@@ -97,8 +86,15 @@ function App() {
   };
 
   const propiedadesFiltradas = propiedades.filter(
-    (casa) => casa.precio <= Number(presupuesto)
+    (casa) => casa.precio <= Number(presupuesto || montoCredito)
   );
+
+  const generarMensaje = (casa: any) => {
+    return `Hola, me interesa ${casa.nombre}.
+Tipo de crédito: ${tipoCredito}
+Detalle: ${subTipo}
+Monto: $${montoCredito || presupuesto}`;
+  };
 
   return (
     <div style={{ padding: 20 }}>
@@ -108,77 +104,116 @@ function App() {
         <>
           {!confirmation ? (
             <>
-              <h3>Ingresa tu número</h3>
               <input
-                placeholder="10 dígitos"
+                placeholder="Teléfono"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
               />
-              <br /><br />
               <button onClick={sendCode}>Enviar código</button>
             </>
           ) : (
             <>
-              <h3>Ingresa código</h3>
               <input
+                placeholder="Código"
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
               />
-              <br /><br />
               <button onClick={verifyCode}>Verificar</button>
             </>
           )}
         </>
       ) : mostrarFiltro ? (
         <>
-          <h2>¿Cuál es tu presupuesto?</h2>
+          <h2>Cuéntanos sobre tu crédito</h2>
 
-          <input
-            placeholder="Ej: 1500000"
-            value={presupuesto}
-            onChange={(e) => setPresupuesto(e.target.value)}
-          />
+          <select onChange={(e) => setTipoCredito(e.target.value)}>
+            <option value="">Selecciona crédito</option>
+            <option value="Infonavit">Infonavit</option>
+            <option value="Fovissste">Fovissste</option>
+            <option value="Bancario">Bancario</option>
+          </select>
 
           <br /><br />
 
-          <button onClick={aplicarFiltro}>
-            Ver propiedades para mí
-          </button>
+          {/* INFONAVIT */}
+          {tipoCredito === "Infonavit" && (
+            <>
+              <select onChange={(e) => setSubTipo(e.target.value)}>
+                <option value="">Selecciona opción</option>
+                <option value="Tradicional">Tradicional</option>
+                <option value="Unamos crédito">Unamos crédito</option>
+                <option value="No sé mi crédito">Necesito ayuda</option>
+              </select>
+
+              <br /><br />
+
+              {subTipo === "Tradicional" && (
+                <input
+                  placeholder="Monto de crédito"
+                  onChange={(e) => setMontoCredito(e.target.value)}
+                />
+              )}
+
+              {subTipo === "Unamos crédito" && (
+                <>
+                  <input
+                    placeholder="Tu monto"
+                    onChange={(e) => setMontoCredito(e.target.value)}
+                  />
+                  <input placeholder="¿Con quién lo unes?" />
+                </>
+              )}
+            </>
+          )}
+
+          {/* FOVISSSTE */}
+          {tipoCredito === "Fovissste" && (
+            <>
+              <input
+                placeholder="Monto de crédito"
+                onChange={(e) => setMontoCredito(e.target.value)}
+              />
+              <p>Si no sabes tu monto escribe: Necesito ayuda</p>
+            </>
+          )}
+
+          {/* BANCARIO */}
+          {tipoCredito === "Bancario" && (
+            <>
+              <input
+                placeholder="Monto autorizado"
+                onChange={(e) => setMontoCredito(e.target.value)}
+              />
+              <p>Si no tienes, escribe: Necesito precalificación</p>
+            </>
+          )}
+
+          <br /><br />
+
+          <button onClick={aplicarFiltro}>Ver opciones</button>
         </>
       ) : (
         <>
-          <h2>Propiedades que puedes comprar</h2>
+          <h2>Opciones para ti</h2>
 
-          {propiedadesFiltradas.length === 0 ? (
-            <p>No hay propiedades en tu rango</p>
-          ) : (
-            propiedadesFiltradas.map((casa) => {
-              const mensualidad = Math.round(casa.precio * 0.01);
+          {propiedadesFiltradas.map((casa) => (
+            <div key={casa.id} style={{ border: "1px solid #ccc", margin: 10, padding: 10 }}>
+              <h3>{casa.nombre}</h3>
+              <p>${casa.precio}</p>
 
-              return (
-                <div
-                  key={casa.id}
-                  style={{ border: "1px solid #ccc", margin: 10, padding: 10 }}
-                >
-                  <h3>{casa.nombre}</h3>
-                  <p>Precio: ${casa.precio}</p>
-                  <p>Desde ${mensualidad} al mes</p>
-                  <p>Recámaras: {casa.recamaras}</p>
-
-                  <button
-                    onClick={() => {
-                      const mensaje = `Hola, me interesa ${casa.nombre}. Mi presupuesto es de $${presupuesto}`;
-                      window.open(
-                        `https://wa.me/525573304018?text=${encodeURIComponent(mensaje)}`
-                      );
-                    }}
-                  >
-                    Me interesa
-                  </button>
-                </div>
-              );
-            })
-          )}
+              <button
+                onClick={() => {
+                  window.open(
+                    `https://wa.me/525573304018?text=${encodeURIComponent(
+                      generarMensaje(casa)
+                    )}`
+                  );
+                }}
+              >
+                Me interesa
+              </button>
+            </div>
+          ))}
         </>
       )}
 
