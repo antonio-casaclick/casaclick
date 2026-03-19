@@ -3,7 +3,7 @@ import "./App.css";
 
 import { auth, db } from "./firebase";
 import { RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
-import { doc, setDoc, collection, getDocs } from "firebase/firestore";
+import { doc, setDoc, collection, getDocs, updateDoc } from "firebase/firestore";
 
 function App() {
   const [phone, setPhone] = useState("");
@@ -11,15 +11,16 @@ function App() {
   const [confirmation, setConfirmation] = useState<any>(null);
   const [userLogged, setUserLogged] = useState(false);
   const [propiedades, setPropiedades] = useState<any[]>([]);
+  const [presupuesto, setPresupuesto] = useState("");
+  const [mostrarFiltro, setMostrarFiltro] = useState(true);
+  const [userId, setUserId] = useState("");
 
   const setupRecaptcha = () => {
     if (!(window as any).recaptchaVerifier) {
       (window as any).recaptchaVerifier = new RecaptchaVerifier(
         auth,
         "recaptcha-container",
-        {
-          size: "invisible",
-        }
+        { size: "invisible" }
       );
     }
   };
@@ -35,7 +36,6 @@ function App() {
     }
 
     const formattedPhone = "+52" + cleanPhone;
-
     const appVerifier = (window as any).recaptchaVerifier;
 
     try {
@@ -63,8 +63,8 @@ function App() {
           fecha: new Date().toISOString(),
         });
 
+        setUserId(user.uid);
         setUserLogged(true);
-        obtenerPropiedades();
       })
       .catch(() => {
         alert("Código incorrecto");
@@ -72,19 +72,33 @@ function App() {
   };
 
   const obtenerPropiedades = async () => {
-    try {
-      const querySnapshot = await getDocs(collection(db, "propiedades"));
-      const lista: any[] = [];
+    const querySnapshot = await getDocs(collection(db, "propiedades"));
+    const lista: any[] = [];
 
-      querySnapshot.forEach((doc) => {
-        lista.push({ id: doc.id, ...doc.data() });
-      });
+    querySnapshot.forEach((doc) => {
+      lista.push({ id: doc.id, ...doc.data() });
+    });
 
-      setPropiedades(lista);
-    } catch (error) {
-      console.log("ERROR FIREBASE:", error);
-    }
+    setPropiedades(lista);
   };
+
+  const aplicarFiltro = async () => {
+    if (!presupuesto) {
+      alert("Ingresa tu presupuesto");
+      return;
+    }
+
+    await updateDoc(doc(db, "usuarios", userId), {
+      presupuesto: Number(presupuesto),
+    });
+
+    await obtenerPropiedades();
+    setMostrarFiltro(false);
+  };
+
+  const propiedadesFiltradas = propiedades.filter(
+    (casa) => casa.precio <= Number(presupuesto)
+  );
 
   return (
     <div style={{ padding: 20 }}>
@@ -115,34 +129,55 @@ function App() {
             </>
           )}
         </>
+      ) : mostrarFiltro ? (
+        <>
+          <h2>¿Cuál es tu presupuesto?</h2>
+
+          <input
+            placeholder="Ej: 1500000"
+            value={presupuesto}
+            onChange={(e) => setPresupuesto(e.target.value)}
+          />
+
+          <br /><br />
+
+          <button onClick={aplicarFiltro}>
+            Ver propiedades para mí
+          </button>
+        </>
       ) : (
         <>
-          <h2>Casas disponibles</h2>
+          <h2>Propiedades que puedes comprar</h2>
 
-          {propiedades.length === 0 ? (
-            <p>Cargando propiedades...</p>
+          {propiedadesFiltradas.length === 0 ? (
+            <p>No hay propiedades en tu rango</p>
           ) : (
-            propiedades.map((casa) => (
-              <div
-                key={casa.id}
-                style={{ border: "1px solid #ccc", margin: 10, padding: 10 }}
-              >
-                <h3>{casa.nombre}</h3>
-                <p>Precio: ${casa.precio}</p>
-                <p>Recámaras: {casa.recamaras}</p>
+            propiedadesFiltradas.map((casa) => {
+              const mensualidad = Math.round(casa.precio * 0.01);
 
-                <button
-                  onClick={() => {
-                    const mensaje = `Hola, me interesa ${casa.nombre} con precio de $${casa.precio}`;
-                    window.open(
-                      `https://wa.me/525573304018?text=${encodeURIComponent(mensaje)}`
-                    );
-                  }}
+              return (
+                <div
+                  key={casa.id}
+                  style={{ border: "1px solid #ccc", margin: 10, padding: 10 }}
                 >
-                  Me interesa
-                </button>
-              </div>
-            ))
+                  <h3>{casa.nombre}</h3>
+                  <p>Precio: ${casa.precio}</p>
+                  <p>Desde ${mensualidad} al mes</p>
+                  <p>Recámaras: {casa.recamaras}</p>
+
+                  <button
+                    onClick={() => {
+                      const mensaje = `Hola, me interesa ${casa.nombre}. Mi presupuesto es de $${presupuesto}`;
+                      window.open(
+                        `https://wa.me/525573304018?text=${encodeURIComponent(mensaje)}`
+                      );
+                    }}
+                  >
+                    Me interesa
+                  </button>
+                </div>
+              );
+            })
           )}
         </>
       )}
