@@ -115,16 +115,20 @@ function App() {
         <>
           <h2>Casas disponibles</h2>
 
-          {propiedades.map((casa) => (
-            <div
-              key={casa.id}
-              style={{ border: "1px solid #ccc", margin: 10, padding: 10 }}
-            >
-              <h3>{casa.nombre}</h3>
-              <p>Precio: ${casa.precio}</p>
-              <p>Recámaras: {casa.recamaras}</p>
-            </div>
-          ))}
+          {propiedades.length === 0 ? (
+            <p>Cargando propiedades...</p>
+          ) : (
+            propiedades.map((casa) => (
+              <div
+                key={casa.id}
+                style={{ border: "1px solid #ccc", margin: 10, padding: 10 }}
+              >
+                <h3>{casa.nombre}</h3>
+                <p>Precio: ${casa.precio}</p>
+                <p>Recámaras: {casa.recamaras}</p>
+              </div>
+            ))
+          )}
         </>
       )}
 
